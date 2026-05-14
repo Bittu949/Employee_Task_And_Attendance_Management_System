@@ -40,11 +40,11 @@ public class EmployeeController {
         }
         long userId = user.getId();
 
-        long totalTasks = taskRepository.countByUserId(userId);
-        long completedTasks = taskRepository.countByUserIdAndStatus(userId, "Completed");
-        long pendingTasks = taskRepository.countByUserIdAndStatus(userId, "Pending");
+        long totalTasks = taskRepository.countByUser_IdAndDeletedFalse(userId);
+        long completedTasks = taskRepository.countByUser_IdAndStatusAndDeletedFalse(userId, "Completed");
+        long pendingTasks = taskRepository.countByUser_IdAndStatusAndDeletedFalse(userId, "Pending");
 
-        List<Task> tasks = taskRepository.findAllByUser_Id(userId);
+        List<Task> tasks = taskRepository.findAllByUser_IdAndDeletedFalse(userId);
 
         List<Task> recentTasks = tasks.stream()
                 .filter(t -> "Pending".equalsIgnoreCase(t.getStatus()))

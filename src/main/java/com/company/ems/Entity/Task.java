@@ -27,6 +27,8 @@ public class Task{
     private String status;
     private LocalDateTime createdAt;
     private LocalDate assignedAt;
+    @Column(name = "deleted")
+    private boolean deleted = false;
 
     public Task(String taskTitle,
                 String description,

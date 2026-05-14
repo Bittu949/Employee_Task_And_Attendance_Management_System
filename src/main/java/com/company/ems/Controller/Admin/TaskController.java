@@ -7,11 +7,13 @@ import com.company.ems.Service.Admin.TaskService;
 import com.company.ems.Service.Admin.UserService;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Controller
 @AllArgsConstructor
@@ -210,5 +212,30 @@ public class TaskController {
                                   @RequestParam(defaultValue = "10") int size) {
 
         return taskService.filterPaginatedTasks(search, status, userId, deadline, page, size);
+    }
+    @GetMapping("/restorePage")
+    public String restorePage(Model model){
+
+        List<Task> tasks = taskService.showDeletedTasks();
+
+        model.addAttribute("tasks", tasks);
+
+        return "Admin_dashboard/Manage_tasks/Restore_tasks/restore_tasks";
+    }
+    @PostMapping("/{taskId}/restore")
+    @ResponseBody
+    public ResponseEntity<?> restoreTask(@PathVariable Long taskId){
+
+        taskService.restoreTask(taskId);
+
+        return ResponseEntity.ok().build();
+    }
+    @PostMapping("/{taskId}/permanentDelete")
+    @ResponseBody
+    public ResponseEntity<?> permanentDelete(@PathVariable Long taskId){
+
+        taskService.permanentDelete(taskId);
+
+        return ResponseEntity.ok().build();
     }
 }

@@ -67,9 +67,9 @@ public class PerformanceService {
             performance.setEmployeeName(user.getFullName());
             performance.setStatus(user.getStatus());
 
-            long totalTasks = taskRepository.countByUserId(user.getId());
-            long completedTasks = taskRepository.countByUserIdAndStatus(user.getId(), "COMPLETED");
-            long pendingTasks = taskRepository.countByUserIdAndStatus(user.getId(), "PENDING");
+            long totalTasks = taskRepository.countByUser_IdAndDeletedFalse(user.getId());
+            long completedTasks = taskRepository.countByUser_IdAndStatusAndDeletedFalse(user.getId(), "COMPLETED");
+            long pendingTasks = taskRepository.countByUser_IdAndStatusAndDeletedFalse(user.getId(), "PENDING");
 
             performance.setTasksAssigned(totalTasks);
             performance.setPending(pendingTasks);
@@ -176,7 +176,7 @@ public class PerformanceService {
             p.setAttendancePercentage(totalAttendance == 0 ? 0 :
                     Math.round((presentDays * 100.0) / totalAttendance));
 
-            List<Task> userTasks = taskRepository.findAllByUser_Id(userId);
+            List<Task> userTasks = taskRepository.findAllByUser_IdAndDeletedFalse(userId);
 
             if(year != null){
                 userTasks = userTasks.stream()
@@ -218,23 +218,25 @@ public class PerformanceService {
 
     public double averageCompletionRate(){
 
-        long totalTasks = taskRepository.count();
+        long totalTasks = taskRepository.countByDeletedFalse();
 
         if(totalTasks == 0){
             return 0;
         }
 
-        long completedTasks = taskRepository.countByStatus("COMPLETED");
+        long completedTasks = taskRepository.countByStatusAndDeletedFalse("COMPLETED");
 
         return Math.round((completedTasks * 100.0) / totalTasks);
     }
 
     public long totalCompletedTasks(){
-        return taskRepository.countByStatus("COMPLETED");
+         List<Task> tasks = taskRepository.findAllByStatus("COMPLETED");
+         return tasks.stream().filter(t -> !t.isDeleted()).count();
     }
 
     public long totalPendingTasks(){
-        return taskRepository.countByStatus("PENDING");
+        List<Task> tasks = taskRepository.findAllByStatus("PENDING");
+        return tasks.stream().filter(t -> !t.isDeleted()).count();
     }
 
     public long countByUserIdAndMonth(long userId, long month){

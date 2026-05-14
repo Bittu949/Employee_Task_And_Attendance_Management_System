@@ -11,16 +11,16 @@ public class EmployeeTaskService {
     @Autowired
     private TaskRepository taskRepository;
     public List<Task> getTasksByUser(Long userId) {
-        return taskRepository.findAllByUser_Id(userId);
+        return taskRepository.findAllByUser_IdAndDeletedFalse(userId);
     }
     public long getTotalTasks(Long userId) {
-        return taskRepository.countByUserId(userId);
+        return taskRepository.countByUser_IdAndDeletedFalse(userId);
     }
     public long getCompletedTasks(Long userId) {
-        return taskRepository.countByUserIdAndStatus(userId, "Completed");
+        return taskRepository.countByUser_IdAndStatusAndDeletedFalse(userId, "Completed");
     }
     public long getPendingTasks(Long userId) {
-        return taskRepository.countByUserIdAndStatus(userId, "Pending");
+        return taskRepository.countByUser_IdAndStatusAndDeletedFalse(userId, "Pending");
     }
     public void updateTaskStatus(Long taskId, String status, Long userId) {
 
@@ -41,7 +41,7 @@ public class EmployeeTaskService {
     public List<Task> filterTasks(User user, String search, String status, String priority){
 
         long userId = user.getId();
-        List<Task> list = taskRepository.findAllByUser_Id(userId);
+        List<Task> list = taskRepository.findAllByUser_IdAndDeletedFalse(userId);
 
         if(search != null){
             search = search.trim().toLowerCase();

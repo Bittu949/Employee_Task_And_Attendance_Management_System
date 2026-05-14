@@ -48,20 +48,34 @@ public class AttendanceService {
 
     public List<Attendance> showAttendanceRecords() {
 
-        List<User> employees = userRepository.findAllByRoleAndStatus("EMPLOYEE", "ACTIVE");
+        List<User> employees = userRepository.findAllByRole("EMPLOYEE");
         List<Attendance> finalList = new ArrayList<>();
+
         LocalDate today = LocalDate.now();
+
         for (User user : employees) {
             List<Attendance> records = attendanceRepository.findAllByUser_Id(user.getId());
             Map<LocalDate, Attendance> attendanceMap = records.stream()
                     .collect(Collectors.toMap(Attendance::getDate, a -> a));
+
             if (user.getJoiningDate() == null) continue;
-            for (LocalDate date = user.getJoiningDate(); !date.isAfter(today); date = date.plusDays(1)) {
+
+            LocalDate endDate = today;
+            if (user.getLeavingDate() != null) {
+                endDate = user.getLeavingDate().equals(today)
+                        ? today.minusDays(1)
+                        : user.getLeavingDate();
+            }
+
+            for (LocalDate date = user.getJoiningDate();
+                 !date.isAfter(endDate);
+                 date = date.plusDays(1)) {
+
                 Attendance found = attendanceMap.get(date);
+
                 if (found != null) {
                     handleMissedCheckoutForAdmin(found);
                     finalList.add(found);
-
                 } else {
                     Attendance absent = new Attendance();
                     absent.setUser(user);
@@ -73,6 +87,7 @@ public class AttendanceService {
             }
         }
         finalList.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+
         return finalList;
     }
 
@@ -118,11 +133,14 @@ public class AttendanceService {
     public long presentCount(List<Attendance> attendanceList) {
         long count = 0;
         LocalDate today = LocalDate.now();
-        for(Attendance attendance : attendanceList){
-            if(today.equals(attendance.getDate())){
-                if("PRESENT".equalsIgnoreCase(attendance.getStatus())){
-                    count++;
-                }
+
+        for (Attendance attendance : attendanceList) {
+            if (today.equals(attendance.getDate()) &&
+                    attendance.getUser() != null &&
+                    "ACTIVE".equalsIgnoreCase(attendance.getUser().getStatus()) &&
+                    "PRESENT".equalsIgnoreCase(attendance.getStatus())) {
+
+                count++;
             }
         }
         return count;
@@ -131,11 +149,14 @@ public class AttendanceService {
     public long absentCount(List<Attendance> attendanceList) {
         long count = 0;
         LocalDate today = LocalDate.now();
-        for(Attendance attendance : attendanceList){
-            if(today.equals(attendance.getDate())){
-                if("ABSENT".equalsIgnoreCase(attendance.getStatus())){
-                    count++;
-                }
+
+        for (Attendance attendance : attendanceList) {
+            if (today.equals(attendance.getDate()) &&
+                    attendance.getUser() != null &&
+                    "ACTIVE".equalsIgnoreCase(attendance.getUser().getStatus()) &&
+                    "ABSENT".equalsIgnoreCase(attendance.getStatus())) {
+
+                count++;
             }
         }
         return count;

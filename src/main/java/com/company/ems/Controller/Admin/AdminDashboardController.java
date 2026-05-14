@@ -40,9 +40,9 @@ public class AdminDashboardController {
         List<Attendance> attendanceList = attendanceService.showAttendanceRecords();
         Page<Task> tasks = taskService.showPaginatedTasks(page, size);
 
-        model.addAttribute("totalTasks", taskRepository.count());
-        model.addAttribute("completedTasks", taskRepository.countByStatus("COMPLETED"));
-        model.addAttribute("pendingTasks", taskRepository.countByStatus("PENDING"));
+        model.addAttribute("totalTasks", taskRepository.countByDeletedFalse());
+        model.addAttribute("completedTasks", taskRepository.countByStatusAndDeletedFalse("COMPLETED"));
+        model.addAttribute("pendingTasks", taskRepository.countByStatusAndDeletedFalse("PENDING"));
         model.addAttribute("todaysAttendancePercentage", attendanceService.showAttendancePercentage(attendanceList));
         model.addAttribute("totalEmployee", attendanceService.totalEmployeesCount());
         model.addAttribute("tasksDueThisWeek", taskService.taskDueThisWeekCount());

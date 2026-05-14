@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @AllArgsConstructor
 @Service
@@ -31,6 +32,7 @@ public class TaskService {
         }
 
         task.setCreatedAt(LocalDateTime.now());
+        task.setDeleted(false);
         taskRepository.save(task);
     }
 
@@ -66,7 +68,8 @@ public class TaskService {
     }
 
     public List<Task> getUnassignedTasks(){
-        return taskRepository.findByUserIsNull();
+        List<Task> tasks = taskRepository.findByUserIsNull();
+        return tasks.stream().filter(t -> !t.isDeleted()).toList();
     }
 
     public void editTask(long taskId,
@@ -134,7 +137,9 @@ public class TaskService {
             throw new ResourceNotFoundException("Task not found");
         }
 
-        taskRepository.deleteById(taskId);
+        Task task = taskRepository.findById(taskId).orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+        task.setDeleted(true);
+        taskRepository.save(task);
     }
 
     public void reassignTask(long taskId, long userId){
@@ -159,7 +164,7 @@ public class TaskService {
     }
 
     public List<Task> showAllTasks(){
-        return taskRepository.findAll();
+        return taskRepository.findAllByDeletedFalse();
     }
 
     public Page<Task> filterPaginatedTasks(String search,
@@ -189,7 +194,7 @@ public class TaskService {
 
     public List<Task> filterTasks(String search, String status, Long userId, String deadline){
 
-        List<Task> tasks = taskRepository.findAll();
+        List<Task> tasks = taskRepository.findAllByDeletedFalse();
 
         if(search != null){
             search = search.trim().toLowerCase();
@@ -249,19 +254,22 @@ public class TaskService {
     }
 
     public long totalTaskCount(){
-        return taskRepository.count();
+        return taskRepository.countByDeletedFalse();
     }
 
     public long pendingTaskCount(){
-        return taskRepository.countByStatus("PENDING");
+        List<Task> tasks = taskRepository.findAllByStatus("PENDING");
+        return tasks.stream().filter(t -> !t.isDeleted()).count();
     }
 
     public long inProgressTaskCount(){
-        return taskRepository.countByStatus("IN_PROGRESS");
+        List<Task> tasks = taskRepository.findAllByStatus("IN_PROGRESS");
+        return tasks.stream().filter(t -> !t.isDeleted()).count();
     }
 
     public long completedTaskCount(){
-        return taskRepository.countByStatus("COMPLETED");
+        List<Task> tasks = taskRepository.findAllByStatus("COMPLETED");
+        return tasks.stream().filter(t -> !t.isDeleted()).count();
     }
 
     public long taskDueThisWeekCount(){
@@ -275,12 +283,31 @@ public class TaskService {
                 .filter(t -> t.getDeadline()!=null &&
                         !t.getDeadline().isBefore(today) &&
                         !t.getDeadline().isAfter(thisWeek))
+                .filter(t -> !t.isDeleted())
                 .count();
     }
-
     public Task getTaskById(long id){
 
         return taskRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+    }
+    public List<Task> showDeletedTasks(){
+        return taskRepository.findAllByDeletedTrue();
+    }
+    public void restoreTask(Long taskId){
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        task.setDeleted(false);
+
+        taskRepository.save(task);
+    }
+    public void permanentDelete(Long taskId){
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        taskRepository.delete(task);
     }
 }

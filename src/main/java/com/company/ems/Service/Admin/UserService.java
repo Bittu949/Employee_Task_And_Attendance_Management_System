@@ -1,8 +1,10 @@
 package com.company.ems.Service.Admin;
 
+import com.company.ems.Entity.Attendance;
 import com.company.ems.Entity.User;
 import com.company.ems.Exception.InvalidInputException;
 import com.company.ems.Exception.ResourceNotFoundException;
+import com.company.ems.Repository.AttendanceRepository;
 import com.company.ems.Repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +22,7 @@ import java.util.List;
 public class UserService {
 
     UserRepository userRepository;
+    AttendanceRepository attendanceRepository;
     PasswordEncoder passwordEncoder;
 
     public void addUser(User user, String confirmPassword){
@@ -97,7 +100,26 @@ public class UserService {
             }
 
             else if(user.getStatus().equalsIgnoreCase("ACTIVE") && status.equalsIgnoreCase("INACTIVE")){
-                user.setLeavingDate(LocalDate.now());
+
+                LocalDate today = LocalDate.now();
+                LocalDate leavingDate = today.minusDays(1);
+
+                if(user.getJoiningDate() != null &&
+                        leavingDate.isBefore(user.getJoiningDate()) &&
+                        !user.getJoiningDate().equals(today)) {
+
+                    throw new InvalidInputException("Leaving date cannot be before joining date");
+                }
+                List<Attendance> todayRecords = attendanceRepository.findAllByUser_Id(user.getId())
+                        .stream()
+                        .filter(a -> a.getDate() != null && a.getDate().equals(today))
+                        .toList();
+
+                if(!todayRecords.isEmpty()){
+                    attendanceRepository.deleteAll(todayRecords);
+                }
+
+                user.setLeavingDate(leavingDate);
             }
             user.setStatus(status);
         }
@@ -135,9 +157,7 @@ public class UserService {
         }
 
         user.setStatus("ACTIVE");
-        if(user.getJoiningDate() == null){
-            user.setJoiningDate(LocalDate.now());
-        }
+        user.setJoiningDate(LocalDate.now());
         user.setLeavingDate(null);
         userRepository.save(user);
     }
@@ -151,8 +171,26 @@ public class UserService {
             throw new InvalidInputException("User is already inactive");
         }
 
+        LocalDate today = LocalDate.now();
+        LocalDate leavingDate = today.minusDays(1);
+
+        if(user.getJoiningDate() != null &&
+                leavingDate.isBefore(user.getJoiningDate()) &&
+                !user.getJoiningDate().equals(today)) {
+            throw new InvalidInputException("Leaving date cannot be before joining date");
+        }
+
+        List<Attendance> todayRecords = attendanceRepository.findAllByUser_Id(user.getId())
+                .stream()
+                .filter(a -> a.getDate() != null && a.getDate().equals(today))
+                .toList();
+
+        if(!todayRecords.isEmpty()){
+            attendanceRepository.deleteAll(todayRecords);
+        }
+
         user.setStatus("INACTIVE");
-        user.setLeavingDate(LocalDate.now());
+        user.setLeavingDate(leavingDate);
         userRepository.save(user);
     }
 

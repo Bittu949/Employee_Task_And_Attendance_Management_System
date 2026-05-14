@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restore Tasks</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gradient-to-br from-slate-100 via-white to-indigo-100 font-sans">
+
+<div class="flex flex-col md:flex-row min-h-screen">
+
+    <!-- SIDEBAR -->
+    <div class="w-full md:w-64 shrink-0 bg-white/80 backdrop-blur-xl border-b md:border-b-0 md:border-r border-gray-200 p-4 md:p-5 shadow-sm md:shadow-lg">
+
+        <div class="mt-2 md:mt-10 flex md:flex-col gap-2 overflow-x-auto md:overflow-visible">
+
+            <a th:href="@{/admin/admin_dashboard}"
+               class="px-4 py-2 rounded-xl hover:bg-gray-100">
+                Dashboard
+            </a>
+
+            <a th:href="@{/admin/user/allUsers}"
+               class="px-4 py-2 rounded-xl hover:bg-gray-100">
+                Manage Users
+            </a>
+
+            <a th:href="@{/admin/task/allTasks}"
+               class="px-4 py-2 rounded-xl bg-indigo-100 text-indigo-700 font-medium">
+                Tasks
+            </a>
+
+            <a th:href="@{/admin/attendance/allRecords}"
+               class="px-4 py-2 rounded-xl hover:bg-gray-100">
+                Attendance Reports
+            </a>
+
+            <a th:href="@{/admin/performance/details}"
+               class="px-4 py-2 rounded-xl hover:bg-gray-100">
+                Performance Reports
+            </a>
+
+            <a th:href="@{/admin/settings/page}"
+               class="px-4 py-2 rounded-xl hover:bg-gray-100">
+                Settings
+            </a>
+
+        </div>
+
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="flex-1 p-4 md:p-6">
+
+        <!-- HEADER -->
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+
+            <div>
+                <div class="text-3xl font-bold text-gray-800">
+                    Restore Tasks
+                </div>
+
+                <div class="text-gray-500 text-sm">
+                    Restore deleted tasks back to active tasks
+                </div>
+            </div>
+
+            <a th:href="@{/admin/task/allTasks}"
+               class="px-4 py-2 rounded-lg border bg-white hover:bg-gray-100 text-center">
+                Back To Tasks
+            </a>
+
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div th:if="${tasks == null or #lists.isEmpty(tasks)}"
+             class="bg-white rounded-3xl shadow-lg p-10 text-center mt-10">
+
+            <div class="text-2xl font-bold text-gray-700">
+                No Deleted Tasks
+            </div>
+
+            <div class="text-gray-500 mt-2">
+                Deleted tasks will appear here
+            </div>
+
+        </div>
+
+        <!-- TASK GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+            <div th:each="task : ${tasks}"
+                 class="bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden">
+
+                <!-- TOP SECTION -->
+                <div class="p-6">
+
+                    <div class="flex justify-between items-start">
+
+                        <div>
+                            <div class="text-xl font-bold text-gray-800"
+                                 th:text="${task.taskTitle}">
+                            </div>
+
+                            <div class="text-sm text-gray-500 mt-1">
+                                Deleted Task
+                            </div>
+                        </div>
+
+                        <div class="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-600">
+                            Deleted
+                        </div>
+
+                    </div>
+
+                    <!-- DESCRIPTION -->
+                    <div class="mt-5">
+
+                        <div class="text-xs uppercase tracking-wide text-gray-400 mb-1">
+                            Description
+                        </div>
+
+                        <div class="text-sm text-gray-700 leading-relaxed"
+                             th:text="${task.description}">
+                        </div>
+
+                    </div>
+
+                    <!-- DETAILS -->
+                    <div class="mt-6 space-y-4">
+
+                        <div class="flex justify-between items-center">
+                            <div class="text-gray-500 text-sm">
+                                Assigned To
+                            </div>
+
+                            <div class="text-sm font-medium text-gray-800"
+                                 th:text="${task.user != null ? task.user.fullName : 'Unassigned'}">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <div class="text-gray-500 text-sm">
+                                Deadline
+                            </div>
+
+                            <div class="text-sm font-medium text-gray-800"
+                                 th:text="${task.deadline}">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <div class="text-gray-500 text-sm">
+                                Priority
+                            </div>
+
+                            <div class="text-sm font-medium text-gray-800"
+                                 th:text="${task.priority}">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <div class="text-gray-500 text-sm">
+                                Status
+                            </div>
+
+                            <div class="text-sm font-medium text-gray-800"
+                                 th:text="${task.status}">
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="border-t bg-gray-50 px-6 py-4 flex gap-3">
+
+                    <button type="button"
+                            th:onclick="'restoreTask(' + ${task.id} + ')'"
+                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition-all duration-200">
+                        Restore Task
+                    </button>
+
+                    <button type="button"
+                            th:onclick="'permanentDelete(' + ${task.id} + ')'"
+                            class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl text-sm font-medium transition-all duration-200">
+                        Delete Permanently
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+    function restoreTask(taskId){
+
+        Swal.fire({
+            title: 'Restore Task?',
+            text: 'This task will become active again',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Restore',
+            reverseButtons: true
+        }).then((result) => {
+
+            if(result.isConfirmed){
+
+                fetch(`/admin/task/${taskId}/restore`,{
+                    method : 'POST'
+                })
+                .then(response => {
+
+                    if(!response.ok){
+                        throw new Error();
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Task Restored',
+                        showConfirmButton: false,
+                        timer: 1200
+                    });
+
+                    setTimeout(() => {
+                        location.reload();
+                    },1200);
+
+                })
+                .catch(() => {
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Something went wrong'
+                    });
+
+                });
+
+            }
+
+        });
+
+    }
+
+    function permanentDelete(taskId){
+
+        Swal.fire({
+            title: 'Delete Permanently?',
+            text: 'This action cannot be undone',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Delete',
+            reverseButtons: true
+        }).then((result) => {
+
+            if(result.isConfirmed){
+
+                fetch(`/admin/task/${taskId}/permanentDelete`,{
+                    method : 'POST'
+                })
+                .then(response => {
+
+                    if(!response.ok){
+                        throw new Error();
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Task Deleted Permanently',
+                        showConfirmButton: false,
+                        timer: 1200
+                    });
+
+                    setTimeout(() => {
+                        location.reload();
+                    },1200);
+
+                })
+                .catch(() => {
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Something went wrong'
+                    });
+
+                });
+
+            }
+
+        });
+
+    }
+
+</script>
+
+</body>
+</html>
