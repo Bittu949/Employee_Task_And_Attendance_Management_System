@@ -13,11 +13,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import com.company.ems.Entity.EmploymentHistory;
+import com.company.ems.Repository.EmploymentHistoryRepository;
 
 @Service
 public class EmployeeAttendanceService {
     @Autowired
     private AttendanceRepository attendanceRepository;
+    @Autowired
+    private EmploymentHistoryRepository employmentHistoryRepository;
     public Attendance getTodayAttendance(long userId) {
 
         LocalDate today = LocalDate.now();
@@ -31,26 +35,68 @@ public class EmployeeAttendanceService {
     public List<Attendance> getAttendanceHistory(long userId, LocalDate joiningDate) {
 
         LocalDate today = LocalDate.now();
-        List<Attendance> records = attendanceRepository.findAllByUser_Id(userId);
-        if (joiningDate == null) {
-            return new ArrayList<>();
-        }
-        Map<LocalDate, Attendance> attendanceMap = records.stream()
-                .collect(Collectors.toMap(Attendance::getDate, a -> a));
-        List<Attendance> finalList = new ArrayList<>();
-        for (LocalDate date = joiningDate; !date.isAfter(today); date = date.plusDays(1)) {
-            Attendance found = attendanceMap.get(date);
-            if (found != null) {
-                handleMissedCheckout(found, today);
-                finalList.add(found);
-            } else {
-                Attendance absent = new Attendance();
-                absent.setDate(date);
-                absent.setStatus("Absent");
 
-                finalList.add(absent);
+        List<Attendance> records =
+                attendanceRepository.findAllByUser_Id(userId);
+
+        Map<LocalDate, Attendance> attendanceMap = records.stream()
+                .collect(Collectors.toMap(
+                        Attendance::getDate,
+                        a -> a,
+                        (a1, a2) -> a1
+                ));
+
+        List<EmploymentHistory> employmentPeriods =
+                employmentHistoryRepository.findAllByUser_Id(userId);
+
+        List<Attendance> finalList = new ArrayList<>();
+
+        for (EmploymentHistory period : employmentPeriods) {
+
+            LocalDate startDate = period.getStartDate();
+
+            LocalDate endDate =
+                    period.getEndDate() == null
+                            ? today
+                            : period.getEndDate();
+
+            for (LocalDate date = startDate;
+                 !date.isAfter(endDate);
+                 date = date.plusDays(1)) {
+
+                Attendance found = attendanceMap.get(date);
+
+                if (found != null) {
+
+                    handleMissedCheckout(found, today);
+
+                    if (!finalList.contains(found)) {
+                        finalList.add(found);
+                    }
+
+                } else {
+
+                    LocalDate currentDate = date;
+
+                    boolean alreadyGenerated =
+                            finalList.stream()
+                                    .anyMatch(a ->
+                                            a.getDate() != null &&
+                                                    a.getDate().equals(currentDate));
+
+                    if (!alreadyGenerated) {
+
+                        Attendance absent = new Attendance();
+
+                        absent.setDate(currentDate);
+                        absent.setStatus("ABSENT");
+
+                        finalList.add(absent);
+                    }
+                }
             }
         }
+
         return finalList.stream()
                 .sorted((a, b) -> b.getDate().compareTo(a.getDate()))
                 .toList();
@@ -69,7 +115,7 @@ public class EmployeeAttendanceService {
             );
             long hours = duration.toHours();
             long minutes = duration.toMinutes() % 60;
-            attendance.setStatus("Present");
+            attendance.setStatus("PRESENT");
             String working = hours + " hrs " + minutes + " min (Auto Closed)";
             attendance.setWorkingHours(working);
             attendanceRepository.save(attendance);
@@ -89,7 +135,7 @@ public class EmployeeAttendanceService {
         attendance.setUser(user);
         attendance.setDate(today);
         attendance.setCheckInTime(LocalTime.now());
-        attendance.setStatus("Present");
+        attendance.setStatus("PRESENT");
 
         attendanceRepository.save(attendance);
     }

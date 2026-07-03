@@ -71,13 +71,15 @@ public class PerformanceController {
 
             PrintWriter writer = response.getWriter();
 
-            writer.println("Employee Name,Tasks Assigned,Pending,Completion %,Attendance %,Status");
+            writer.println("Employee Name,Tasks Assigned,Pending,On Time Completed,Late Completed,Completion %,Attendance %,Status");
 
             for (Performance p : performances) {
                 writer.println(
                         p.getEmployeeName() + "," +
                                 p.getTasksAssigned() + "," +
                                 p.getPending() + "," +
+                                p.getOnTimeCompleted() + "," +
+                                p.getLateCompleted() + "," +
                                 p.getCompletionPercentage() + "," +
                                 p.getAttendancePercentage() + "," +
                                 p.getStatus()

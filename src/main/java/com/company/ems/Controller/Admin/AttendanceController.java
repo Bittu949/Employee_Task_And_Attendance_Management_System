@@ -25,7 +25,7 @@ public class AttendanceController {
     @GetMapping("/allRecords")
     public String showAttendanceRecords(Model model,
                                         @RequestParam(defaultValue = "0") int page,
-                                        @RequestParam(defaultValue = "10") int size){
+                                        @RequestParam(defaultValue = "12") int size){
 
         if(page < 0 || size <= 0){
             throw new BadRequestException("Invalid pagination parameters");
@@ -49,12 +49,14 @@ public class AttendanceController {
 
     @GetMapping("/filter")
     @ResponseBody
-    public Page<Attendance> filterAttendance(@RequestParam(required = false) String name,
-                                             @RequestParam(required = false) Integer month,
-                                             @RequestParam(required = false) Integer year,
-                                             @RequestParam(required = false) String status,
-                                             @RequestParam(defaultValue = "0") int page,
-                                             @RequestParam(defaultValue = "10") int size){
+    public Page<Attendance> filterAttendance(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String date,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
 
         if(page < 0 || size <= 0){
             throw new BadRequestException("Invalid pagination parameters");
@@ -69,7 +71,14 @@ public class AttendanceController {
         }
 
         return attendanceService
-                .filterAttendanceWithPagination(name, month, year, status, page, size);
+                .filterAttendanceWithPagination(
+                        name,
+                        month,
+                        year,
+                        status,
+                        date,
+                        page,
+                        size);
     }
 
     @GetMapping("/export")
@@ -78,6 +87,7 @@ public class AttendanceController {
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String date,
             HttpServletResponse response) throws IOException {
 
         if(month != null && (month < 1 || month > 12)){
@@ -92,19 +102,25 @@ public class AttendanceController {
         response.setHeader("Content-Disposition", "attachment; filename=attendance_report.csv");
 
         List<Attendance> attendances =
-                attendanceService.filterAttendance(search, month, year, status);
+                attendanceService.filterAttendance(
+                        search,
+                        month,
+                        year,
+                        status,
+                        date);
 
         PrintWriter writer = response.getWriter();
 
         writer.println("Employee Name,Date,Check-in,Check-out,Working Hours,Status");
 
         for (Attendance a : attendances) {
+
             writer.println(
                     "\"" + (a.getUser() != null ? a.getUser().getFullName() : "N/A") + "\"," +
                             a.getDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) + "," +
-                            a.getCheckInTime() + "," +
-                            a.getCheckOutTime() + "," +
-                            a.getWorkingHours() + "," +
+                            (a.getCheckInTime() != null ? a.getCheckInTime() : "-") + "," +
+                            (a.getCheckOutTime() != null ? a.getCheckOutTime() : "-") + "," +
+                            (a.getWorkingHours() != null ? a.getWorkingHours() : "-") + "," +
                             a.getStatus()
             );
         }

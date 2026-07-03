@@ -1,5 +1,7 @@
 package com.company.ems.Controller.Admin;
 
+import com.company.ems.Dto.CompletedTaskDto;
+import com.company.ems.Dto.TaskSummaryDto;
 import com.company.ems.Entity.Task;
 import com.company.ems.Exception.InvalidDataException;
 import com.company.ems.Exception.ResourceNotFoundException;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import com.company.ems.Entity.TaskStatusHistory;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -144,6 +147,25 @@ public class TaskController {
         return "Admin_dashboard/Manage_tasks/View/view";
     }
 
+    @GetMapping("/{taskId}/historyPage")
+    public String historyPage(@PathVariable Long taskId,
+                              Model model){
+
+        Task task = taskService.getTaskById(taskId);
+
+        if(task == null){
+            throw new ResourceNotFoundException("Task not found");
+        }
+
+        List<TaskStatusHistory> history =
+                taskService.getTaskHistory(taskId);
+
+        model.addAttribute("task", task);
+        model.addAttribute("history", history);
+
+        return "Admin_dashboard/Manage_tasks/History/history";
+    }
+
     @PostMapping("/{taskId}/delete")
     public String deleteTask(@PathVariable long taskId) {
 
@@ -202,6 +224,33 @@ public class TaskController {
         return "Admin_dashboard/Manage_tasks/task";
     }
 
+    @GetMapping("/completedTasksPage")
+    public String completedTasksPage(Model model){
+
+        model.addAttribute("users",
+                userService.getAllUsers());
+
+        return "Admin_dashboard/Manage_tasks/Completed_tasks/completed_tasks";
+    }
+
+    @GetMapping("/completedTasks/filter")
+    @ResponseBody
+    public Page<CompletedTaskDto> filterCompletedTasks(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String completionType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
+
+        return taskService.filterCompletedTasks(
+                search,
+                userId,
+                completionType,
+                page,
+                size
+        );
+    }
+
     @GetMapping("/filter")
     @ResponseBody
     public Page<Task> filterTasks(@RequestParam(required = false) String search,
@@ -237,5 +286,65 @@ public class TaskController {
         taskService.permanentDelete(taskId);
 
         return ResponseEntity.ok().build();
+    }
+    @GetMapping("/{taskId}/history")
+    @ResponseBody
+    public List<TaskStatusHistory> taskHistory(
+            @PathVariable Long taskId){
+
+        return taskService.getTaskHistory(taskId);
+    }
+    @GetMapping("/pendingTasksPage")
+    public String pendingTasksPage(Model model){
+
+        model.addAttribute("users",
+                userService.getAllUsers());
+
+        return "Admin_dashboard/Manage_tasks/Pending_tasks/pending_tasks";
+    }
+
+    @GetMapping("/inProgressTasksPage")
+    public String inProgressTasksPage(Model model){
+
+        model.addAttribute("users",
+                userService.getAllUsers());
+
+        return "Admin_dashboard/Manage_tasks/Inprogress_tasks/inprogress_tasks";
+    }
+    @GetMapping("/pendingTasks/filter")
+    @ResponseBody
+    public Page<TaskSummaryDto> filterPendingTasks(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String deadline,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
+
+        return taskService.filterTaskSummary(
+                search,
+                "PENDING",
+                userId,
+                deadline,
+                page,
+                size
+        );
+    }
+    @GetMapping("/inProgressTasks/filter")
+    @ResponseBody
+    public Page<TaskSummaryDto> filterInProgressTasks(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String deadline,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
+
+        return taskService.filterTaskSummary(
+                search,
+                "IN_PROGRESS",
+                userId,
+                deadline,
+                page,
+                size
+        );
     }
 }

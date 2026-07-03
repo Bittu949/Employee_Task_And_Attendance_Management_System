@@ -70,9 +70,16 @@ public class PerformanceService {
             long totalTasks = taskRepository.countByUser_IdAndDeletedFalse(user.getId());
             long completedTasks = taskRepository.countByUser_IdAndStatusAndDeletedFalse(user.getId(), "COMPLETED");
             long pendingTasks = taskRepository.countByUser_IdAndStatusAndDeletedFalse(user.getId(), "PENDING");
+            long onTimeCompleted =
+                    countOnTimeCompletedTasks(user.getId());
+
+            long lateCompleted =
+                    countLateCompletedTasks(user.getId());
 
             performance.setTasksAssigned(totalTasks);
             performance.setPending(pendingTasks);
+            performance.setOnTimeCompleted(onTimeCompleted);
+            performance.setLateCompleted(lateCompleted);
 
             if(totalTasks == 0){
                 performance.setCompletionPercentage(0);
@@ -201,9 +208,26 @@ public class PerformanceService {
             long pendingTasks = userTasks.stream()
                     .filter(t -> "PENDING".equalsIgnoreCase(t.getStatus()))
                     .count();
+            long onTimeCompleted = userTasks.stream()
+                    .filter(t ->
+                            "COMPLETED".equalsIgnoreCase(t.getStatus())
+                                    && t.getCompletedAt() != null
+                                    && t.getDeadline() != null
+                                    && !t.getCompletedAt().toLocalDate().isAfter(t.getDeadline()))
+                    .count();
+
+            long lateCompleted = userTasks.stream()
+                    .filter(t ->
+                            "COMPLETED".equalsIgnoreCase(t.getStatus())
+                                    && t.getCompletedAt() != null
+                                    && t.getDeadline() != null
+                                    && t.getCompletedAt().toLocalDate().isAfter(t.getDeadline()))
+                    .count();
 
             p.setTasksAssigned(totalTasks);
             p.setPending(pendingTasks);
+            p.setOnTimeCompleted(onTimeCompleted);
+            p.setLateCompleted(lateCompleted);
 
             p.setCompletionPercentage(totalTasks == 0 ? 0 :
                     Math.round((completedTasks * 100.0) / totalTasks));
@@ -342,6 +366,28 @@ public class PerformanceService {
                         a.getDate().getMonthValue()==month &&
                         a.getDate().getYear()==year &&
                         status.equalsIgnoreCase(a.getStatus()))
+                .count();
+    }
+    public long countOnTimeCompletedTasks(long userId){
+
+        return taskRepository.findAllByUser_IdAndDeletedFalse(userId)
+                .stream()
+                .filter(t ->
+                        "COMPLETED".equalsIgnoreCase(t.getStatus())
+                                && t.getCompletedAt() != null
+                                && t.getDeadline() != null
+                                && !t.getCompletedAt().toLocalDate().isAfter(t.getDeadline()))
+                .count();
+    }
+    public long countLateCompletedTasks(long userId){
+
+        return taskRepository.findAllByUser_IdAndDeletedFalse(userId)
+                .stream()
+                .filter(t ->
+                        "COMPLETED".equalsIgnoreCase(t.getStatus())
+                                && t.getCompletedAt() != null
+                                && t.getDeadline() != null
+                                && t.getCompletedAt().toLocalDate().isAfter(t.getDeadline()))
                 .count();
     }
 }

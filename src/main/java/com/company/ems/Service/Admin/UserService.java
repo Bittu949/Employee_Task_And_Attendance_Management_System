@@ -12,6 +12,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.company.ems.Entity.EmploymentHistory;
+import com.company.ems.Repository.EmploymentHistoryRepository;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -24,6 +26,7 @@ public class UserService {
     UserRepository userRepository;
     AttendanceRepository attendanceRepository;
     PasswordEncoder passwordEncoder;
+    private final EmploymentHistoryRepository employmentHistoryRepository;
 
     public void addUser(User user, String confirmPassword){
 
@@ -47,18 +50,31 @@ public class UserService {
 
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+
         if(user.getStatus()!=null && user.getStatus().equalsIgnoreCase("ACTIVE")) {
             user.setJoiningDate(LocalDate.now());
             user.setLeavingDate(null);
         }
+
         if(user.getStatus()!=null && user.getStatus().equalsIgnoreCase("INACTIVE")){
             user.setJoiningDate(null);
             user.setLeavingDate(null);
         }
 
         userRepository.save(user);
-    }
 
+        if(user.getStatus()!=null &&
+                user.getStatus().equalsIgnoreCase("ACTIVE")) {
+
+            EmploymentHistory history = new EmploymentHistory();
+
+            history.setUser(user);
+            history.setStartDate(LocalDate.now());
+            history.setEndDate(null);
+
+            employmentHistoryRepository.save(history);
+        }
+    }
     public void editUser(long userId,
                          String fullName,
                          String email,
@@ -94,12 +110,24 @@ public class UserService {
         }
 
         if(status != null && !status.isEmpty()){
-            if(user.getStatus().equalsIgnoreCase("INACTIVE") && status.equalsIgnoreCase("ACTIVE")){
+
+            if(user.getStatus().equalsIgnoreCase("INACTIVE")
+                    && status.equalsIgnoreCase("ACTIVE")){
+
                 user.setJoiningDate(LocalDate.now());
                 user.setLeavingDate(null);
+
+                EmploymentHistory history = new EmploymentHistory();
+
+                history.setUser(user);
+                history.setStartDate(LocalDate.now());
+                history.setEndDate(null);
+
+                employmentHistoryRepository.save(history);
             }
 
-            else if(user.getStatus().equalsIgnoreCase("ACTIVE") && status.equalsIgnoreCase("INACTIVE")){
+            else if(user.getStatus().equalsIgnoreCase("ACTIVE")
+                    && status.equalsIgnoreCase("INACTIVE")){
 
                 LocalDate today = LocalDate.now();
                 LocalDate leavingDate = today.minusDays(1);
@@ -108,25 +136,29 @@ public class UserService {
                         leavingDate.isBefore(user.getJoiningDate()) &&
                         !user.getJoiningDate().equals(today)) {
 
-                    throw new InvalidInputException("Leaving date cannot be before joining date");
+                    throw new InvalidInputException(
+                            "Leaving date cannot be before joining date");
                 }
-                List<Attendance> todayRecords = attendanceRepository.findAllByUser_Id(user.getId())
-                        .stream()
-                        .filter(a -> a.getDate() != null && a.getDate().equals(today))
-                        .toList();
 
-                if(!todayRecords.isEmpty()){
-                    attendanceRepository.deleteAll(todayRecords);
-                }
+                EmploymentHistory history =
+                        employmentHistoryRepository
+                                .findFirstByUser_IdAndEndDateIsNullOrderByStartDateDesc(userId)
+                                .orElseThrow(() ->
+                                        new ResourceNotFoundException(
+                                                "Active employment history not found"));
+
+                history.setEndDate(today);
+
+                employmentHistoryRepository.save(history);
 
                 user.setLeavingDate(leavingDate);
             }
+
             user.setStatus(status);
         }
 
         userRepository.save(user);
     }
-
     public List<User> getActiveUsersExcept(Long userId){
 
         if(userId == null){
@@ -152,14 +184,24 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if(user.getStatus()!=null && user.getStatus().equalsIgnoreCase("ACTIVE")){
+        if(user.getStatus()!=null &&
+                user.getStatus().equalsIgnoreCase("ACTIVE")){
             throw new InvalidInputException("User is already active");
         }
 
         user.setStatus("ACTIVE");
         user.setJoiningDate(LocalDate.now());
         user.setLeavingDate(null);
+
         userRepository.save(user);
+
+        EmploymentHistory history = new EmploymentHistory();
+
+        history.setUser(user);
+        history.setStartDate(LocalDate.now());
+        history.setEndDate(null);
+
+        employmentHistoryRepository.save(history);
     }
 
     public void deactivateUser(long userId){
@@ -167,30 +209,37 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if(user.getStatus()!=null && user.getStatus().equalsIgnoreCase("INACTIVE")){
+        if(user.getStatus() != null &&
+                user.getStatus().equalsIgnoreCase("INACTIVE")){
             throw new InvalidInputException("User is already inactive");
         }
 
         LocalDate today = LocalDate.now();
-        LocalDate leavingDate = today.minusDays(1);
+
+        LocalDate userLeavingDate = today.minusDays(1);
 
         if(user.getJoiningDate() != null &&
-                leavingDate.isBefore(user.getJoiningDate()) &&
+                userLeavingDate.isBefore(user.getJoiningDate()) &&
                 !user.getJoiningDate().equals(today)) {
-            throw new InvalidInputException("Leaving date cannot be before joining date");
+
+            throw new InvalidInputException(
+                    "Leaving date cannot be before joining date");
         }
 
-        List<Attendance> todayRecords = attendanceRepository.findAllByUser_Id(user.getId())
-                .stream()
-                .filter(a -> a.getDate() != null && a.getDate().equals(today))
-                .toList();
+        EmploymentHistory history =
+                employmentHistoryRepository
+                        .findFirstByUser_IdAndEndDateIsNullOrderByStartDateDesc(userId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Active employment history not found"));
 
-        if(!todayRecords.isEmpty()){
-            attendanceRepository.deleteAll(todayRecords);
-        }
+        history.setEndDate(today);
+
+        employmentHistoryRepository.save(history);
 
         user.setStatus("INACTIVE");
-        user.setLeavingDate(leavingDate);
+        user.setLeavingDate(userLeavingDate);
+
         userRepository.save(user);
     }
 

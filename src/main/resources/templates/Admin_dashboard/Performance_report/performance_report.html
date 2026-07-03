@@ -139,10 +139,12 @@
 
             <div class="section-title font-semibold text-lg mb-3">Performance Records</div>
 
-            <div class="task-item task-header hidden md:grid grid-cols-5 text-xs text-gray-500 uppercase font-semibold border-b pb-2">
+            <div class="task-item task-header hidden md:grid grid-cols-7 text-xs text-gray-500 uppercase font-semibold border-b pb-2">
                 <div class="task-title">Employee</div>
                 <div class="assigned-to">Assigned Tasks</div>
                 <div class="deadline">Pending Tasks</div>
+                <div>On Time</div>
+                <div>Late</div>
                 <div class="status">Task Completion %</div>
                 <div class="view">Attendance %</div>
             </div>
@@ -156,7 +158,7 @@
                 </div>
 
                 <div th:each="performance : ${performances}"
-                     th:class="'task-item flex flex-col md:grid md:grid-cols-5 gap-2 md:gap-0 py-3 border-b text-sm ' +
+                     th:class="'task-item flex flex-col md:grid md:grid-cols-7 gap-2 md:gap-0 py-3 border-b text-sm ' +
                                 (${performance.status != null and performance.status.equalsIgnoreCase('INACTIVE')}
                                 ? 'bg-red-50 opacity-70' : '')">
 
@@ -173,6 +175,16 @@
                     <div class="deadline">
                         <span class="md:hidden font-medium">Pending:</span>
                         <span th:text="${performance.pending}"></span>
+                    </div>
+
+                    <div>
+                        <span class="md:hidden font-medium">On Time:</span>
+                        <span th:text="${performance.onTimeCompleted}"></span>
+                    </div>
+
+                    <div>
+                        <span class="md:hidden font-medium">Late:</span>
+                        <span th:text="${performance.lateCompleted}"></span>
                     </div>
 
                     <div class="status">
@@ -285,13 +297,22 @@
         performanceData.forEach(performance => {
             html +=
             `
-            <div class="task-item flex flex-col md:grid md:grid-cols-5 gap-2 md:gap-0 py-3 border-b text-sm
+            <div class="task-item flex flex-col md:grid md:grid-cols-7 gap-2 md:gap-0 py-3 border-b text-sm
             ${performance.status && performance.status.toUpperCase() === 'INACTIVE'
                 ? 'bg-red-50 opacity-70'
                 : ''}">
                 <div class="task-title"><span class="md:hidden font-medium">Employee:</span> ${performance.employeeName}</div>
                 <div class="assigned-to"><span class="md:hidden font-medium">Assigned:</span> ${performance.tasksAssigned}</div>
                 <div class="deadline"><span class="md:hidden font-medium">Pending:</span> ${performance.pending}</div>
+                <div>
+                    <span class="md:hidden font-medium">On Time:</span>
+                    ${performance.onTimeCompleted}
+                </div>
+
+                <div>
+                    <span class="md:hidden font-medium">Late:</span>
+                    ${performance.lateCompleted}
+                </div>
                 <div class="status"><span class="md:hidden font-medium">Completion:</span> ${performance.completionPercentage} %</div>
                 <div class="view"><span class="md:hidden font-medium">Attendance:</span> ${performance.attendancePercentage} %</div>
             </div>

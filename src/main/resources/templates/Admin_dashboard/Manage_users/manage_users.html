@@ -90,73 +90,96 @@
 
             <div class="section-title font-semibold text-lg mb-3">User Records</div>
 
-            <div class="task-item task-header hidden md:grid grid-cols-5 text-xs text-gray-500 uppercase font-semibold border-b pb-2">
-                <div class="task-title">Name</div>
-                <div class="assigned-to">Email</div>
-                <div class="deadline">Role</div>
-                <div class="status">Status</div>
-                <div class="view">Actions</div>
-            </div>
+            <div class="task-items-group grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
+                 id="table-data">
 
-            <div class="task-items-group" id="table-data">
                 <div th:if="${users == null or #lists.isEmpty(users)}"
-                     class="py-6 text-center text-gray-500">
-                    <div class="text-lg font-medium">No users found</div>
-                    <div class="text-sm">Try changing filters</div>
+                     class="col-span-full bg-slate-50 rounded-3xl p-12 text-center">
+
+                    <div class="text-4xl mb-3">
+                        👥
+                    </div>
+
+                    <h3 class="text-xl font-semibold text-gray-700">
+                        No users found
+                    </h3>
+
+                    <p class="text-gray-500 mt-2">
+                        Try changing filters
+                    </p>
+
                 </div>
 
                 <div th:each="user : ${users}"
-                     class="task-item flex flex-col md:grid md:grid-cols-5 gap-2 md:gap-0 py-3 border-b text-sm"
-                     th:classappend="${user.status != null and user.status.equalsIgnoreCase('INACTIVE')}
-                     ? 'bg-red-50 opacity-70'
-                     : ''">
+                     class="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-md transition duration-200">
 
-                    <div class="task-title">
-                        <span class="md:hidden font-medium">Name:</span>
-                        <span th:text="${user.fullName}"></span>
+                    <div class="flex justify-between items-start">
+
+                        <div>
+
+                            <h3 class="font-bold text-lg text-gray-800"
+                                th:text="${user.fullName}">
+                            </h3>
+
+                            <p class="text-sm text-gray-500 mt-1"
+                               th:text="${user.email}">
+                            </p>
+
+                        </div>
+
                     </div>
 
-                    <div class="assigned-to">
-                        <span class="md:hidden font-medium">Email:</span>
-                        <span th:text="${user.email}"></span>
+                    <div class="flex gap-2 mt-4 flex-wrap">
+
+            <span th:if="${user.role != null and user.role.equalsIgnoreCase('ADMIN')}"
+                  class="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold">
+                Admin
+            </span>
+
+                        <span th:if="${user.role != null and user.role.equalsIgnoreCase('EMPLOYEE')}"
+                              class="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
+                Employee
+            </span>
+
+                        <span th:if="${user.status != null and user.status.equalsIgnoreCase('ACTIVE')}"
+                              class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                Active
+            </span>
+
+                        <span th:if="${user.status != null and user.status.equalsIgnoreCase('INACTIVE')}"
+                              class="px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+                Inactive
+            </span>
+
                     </div>
 
-                    <div class="deadline">
-                        <span class="md:hidden font-medium">Role:</span>
-                        <span th:text="${user.role}"></span>
-                    </div>
-
-                    <div class="status">
-                        <span class="md:hidden font-medium">Status:</span>
-                        <span th:text="${user.status}"></span>
-                    </div>
-
-                    <div class="view actions flex flex-wrap gap-2">
+                    <div class="grid grid-cols-2 gap-2 mt-5">
 
                         <a th:href="@{/admin/user/{userId}/editPage(userId=${user.id})}"
-                           class="view-btn menu-link px-3 py-1 rounded-lg border bg-gray-50 hover:bg-gray-100 transition">
+                           class="text-center px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-200">
                             Edit
                         </a>
 
-                        <button th:if="${user.status!=null and user.status.equalsIgnoreCase('inactive')}"
-                                th:onclick="'activateUser(' + ${user.id} + ')'"
-                                class="view-btn px-3 py-1 rounded-lg border bg-gray-50 hover:bg-gray-100 transition">
-                            Activate
-                        </button>
-
-                        <button th:if="${user.status!=null and user.status.equalsIgnoreCase('active')}"
-                                th:onclick="'deactivateUser(' + ${user.id} +')'"
-                                class="view-btn px-3 py-1 rounded-lg border bg-gray-50 hover:bg-gray-100 transition">
-                            Deactivate
-                        </button>
-
-                        <a th:href="@{/admin/user/{userId}/resetPasswordPage(userId=${user.id})}"
-                           class="view-btn menu-link px-3 py-1 rounded-lg border bg-gray-50 hover:bg-gray-100 transition"
-                           th:if="${user.role!=null and user.role.equalsIgnoreCase('employee')}">
+                        <a th:if="${user.role!=null and user.role.equalsIgnoreCase('employee')}"
+                           th:href="@{/admin/user/{userId}/resetPasswordPage(userId=${user.id})}"
+                           class="text-center px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-200">
                             Reset
                         </a>
 
+                        <button th:if="${user.status!=null and user.status.equalsIgnoreCase('active')}"
+                                th:onclick="'deactivateUser(' + ${user.id} + ')'"
+                                class="col-span-2 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-200">
+                            Deactivate User
+                        </button>
+
+                        <button th:if="${user.status!=null and user.status.equalsIgnoreCase('inactive')}"
+                                th:onclick="'activateUser(' + ${user.id} + ')'"
+                                class="col-span-2 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-200">
+                            Activate User
+                        </button>
+
                     </div>
+
                 </div>
 
             </div>
@@ -247,55 +270,115 @@
     }
 
     function display(data){
-        let displayContainer = document.getElementById("table-data");
+
+        let displayContainer =
+            document.getElementById("table-data");
 
         if(data.length === 0){
+
             displayContainer.innerHTML = `
-                <div class="py-6 text-center text-gray-500">
-                    <div class="text-lg font-medium">No users found</div>
-                    <div class="text-sm">Try changing filters</div>
+                <div class="col-span-full bg-slate-50 rounded-3xl p-12 text-center">
+
+                    <div class="text-4xl mb-3">
+                        👥
+                    </div>
+
+                    <h3 class="text-xl font-semibold text-gray-700">
+                        No users found
+                    </h3>
+
+                    <p class="text-gray-500 mt-2">
+                        Try changing filters
+                    </p>
+
                 </div>
             `;
+
             return;
         }
 
         let html = "";
 
         data.forEach(user => {
-            let actionButton = "";
-            let resetPasswordButton = "";
 
-            if (user.status && user.status.toLowerCase() === "inactive") {
-                actionButton = `<button onClick="activateUser(${user.id})"
-                    class="px-3 py-1 rounded-lg border bg-gray-50 hover:bg-gray-100 transition">Activate</button>`;
-            } else {
-                actionButton = `<button onClick="deactivateUser(${user.id})"
-                    class="px-3 py-1 rounded-lg border bg-gray-50 hover:bg-gray-100 transition">Deactivate</button>`;
-            }
+            let roleBadge =
+                user.role === "ADMIN"
+                ? `<span class="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold">
+                        Admin
+                   </span>`
+                : `<span class="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
+                        Employee
+                   </span>`;
 
-            if(user.role && user.role.toLowerCase() === "employee"){
-                resetPasswordButton = `<a href="/admin/user/${user.id}/resetPasswordPage"
-                    class="px-3 py-1 rounded-lg border bg-gray-50 hover:bg-gray-100 transition">Reset</a>`;
-            }
+            let statusBadge =
+                user.status === "ACTIVE"
+                ? `<span class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                        Active
+                   </span>`
+                : `<span class="px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+                        Inactive
+                   </span>`;
 
-            let rowClass = (user.status && user.status.toLowerCase() === "inactive")
-                ? "task-item flex flex-col md:grid md:grid-cols-5 gap-2 md:gap-0 py-3 border-b text-sm bg-red-50 opacity-70"
-                : "task-item flex flex-col md:grid md:grid-cols-5 gap-2 md:gap-0 py-3 border-b text-sm";
+            let resetButton =
+                user.role === "EMPLOYEE"
+                ? `
+                    <a href="/admin/user/${user.id}/resetPasswordPage"
+                       class="text-center px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-200">
+                        Reset
+                    </a>
+                  `
+                : '';
+
+            let actionButton =
+                user.status === "ACTIVE"
+                ? `
+                    <button
+                        onclick="deactivateUser(${user.id})"
+                        class="col-span-2 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-200">
+                        Deactivate User
+                    </button>
+                  `
+                : `
+                    <button
+                        onclick="activateUser(${user.id})"
+                        class="col-span-2 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-200">
+                        Activate User
+                    </button>
+                  `;
 
             html += `
-            <div class="${rowClass}">
-                <div><span class="md:hidden font-medium">Name:</span> ${user.fullName}</div>
-                <div><span class="md:hidden font-medium">Email:</span> ${user.email}</div>
-                <div><span class="md:hidden font-medium">Role:</span> ${user.role}</div>
-                <div><span class="md:hidden font-medium">Status:</span> ${user.status}</div>
 
-                <div class="view actions flex flex-wrap gap-2">
-                    <a href="/admin/user/${user.id}/editPage"
-                       class="px-3 py-1 rounded-lg border bg-gray-50 hover:bg-gray-100 transition">Edit</a>
-                    ${actionButton}
-                    ${resetPasswordButton}
+                <div class="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-md transition duration-200">
+
+                    <h3 class="font-bold text-lg text-gray-800">
+                        ${user.fullName}
+                    </h3>
+
+                    <p class="text-sm text-gray-500 mt-1">
+                        ${user.email}
+                    </p>
+
+                    <div class="flex gap-2 mt-4 flex-wrap">
+                        ${roleBadge}
+                        ${statusBadge}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mt-5">
+
+                        <a href="/admin/user/${user.id}/editPage"
+                           class="text-center px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition duration-200">
+                            Edit
+                        </a>
+
+                        ${resetButton}
+
+                        ${actionButton}
+
+                    </div>
+
                 </div>
-            </div>`;
+
+            `;
         });
 
         displayContainer.innerHTML = html;

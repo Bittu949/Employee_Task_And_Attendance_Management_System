@@ -13,12 +13,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import com.company.ems.Entity.EmploymentHistory;
+import com.company.ems.Repository.EmploymentHistoryRepository;
 
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 @Controller
 @RequestMapping("/employee")
@@ -29,6 +33,8 @@ public class EmployeeController {
     private AttendanceRepository attendanceRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private EmploymentHistoryRepository employmentHistoryRepository;
     @GetMapping("/employee_dashboard")
     public String dashboard(Model model, Principal principal) {
 
@@ -52,12 +58,38 @@ public class EmployeeController {
                 .limit(5)
                 .toList();
 
-        long totalDays = ChronoUnit.DAYS.between(user.getJoiningDate(), LocalDate.now()) + 1;
-        long presentDays = attendanceRepository.countByUserIdAndStatus(userId, "PRESENT");
+        Set<LocalDate> employmentDates = new HashSet<>();
+
+        List<EmploymentHistory> employmentPeriods =
+                employmentHistoryRepository.findAllByUser_Id(userId);
+
+        for (EmploymentHistory period : employmentPeriods) {
+
+            LocalDate startDate = period.getStartDate();
+
+            LocalDate endDate =
+                    period.getEndDate() == null
+                            ? LocalDate.now()
+                            : period.getEndDate();
+
+            for (LocalDate date = startDate;
+                 !date.isAfter(endDate);
+                 date = date.plusDays(1)) {
+
+                employmentDates.add(date);
+            }
+        }
+
+        long totalDays = employmentDates.size();
+
+        long presentDays =
+                attendanceRepository.countByUserIdAndStatus(userId, "PRESENT");
 
         double attendancePercentage = 0;
+
         if (totalDays > 0) {
-            attendancePercentage = Math.round((presentDays * 100.0) / totalDays);
+            attendancePercentage =
+                    Math.round((presentDays * 100.0) / totalDays);
         }
 
         LocalDate today = LocalDate.now();

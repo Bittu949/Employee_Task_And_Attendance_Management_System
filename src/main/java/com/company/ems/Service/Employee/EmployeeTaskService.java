@@ -6,10 +6,15 @@ import com.company.ems.Repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import com.company.ems.Entity.TaskStatusHistory;
+import com.company.ems.Repository.TaskStatusHistoryRepository;
+import java.time.LocalDateTime;
 @Service
 public class EmployeeTaskService {
     @Autowired
     private TaskRepository taskRepository;
+    @Autowired
+    private TaskStatusHistoryRepository historyRepository;
     public List<Task> getTasksByUser(Long userId) {
         return taskRepository.findAllByUser_IdAndDeletedFalse(userId);
     }
@@ -17,12 +22,14 @@ public class EmployeeTaskService {
         return taskRepository.countByUser_IdAndDeletedFalse(userId);
     }
     public long getCompletedTasks(Long userId) {
-        return taskRepository.countByUser_IdAndStatusAndDeletedFalse(userId, "Completed");
+        return taskRepository.countByUser_IdAndStatusAndDeletedFalse(userId, "COMPLETED");
     }
     public long getPendingTasks(Long userId) {
-        return taskRepository.countByUser_IdAndStatusAndDeletedFalse(userId, "Pending");
+        return taskRepository.countByUser_IdAndStatusAndDeletedFalse(userId, "PENDING");
     }
-    public void updateTaskStatus(Long taskId, String status, Long userId) {
+    public void updateTaskStatus(Long taskId,
+                                 String status,
+                                 Long userId) {
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
@@ -31,8 +38,36 @@ public class EmployeeTaskService {
             throw new RuntimeException("Unauthorized access");
         }
 
+        String oldStatus = task.getStatus();
+
+        if(oldStatus != null &&
+                oldStatus.equalsIgnoreCase(status)){
+            return;
+        }
+
         task.setStatus(status);
+
+        if("COMPLETED".equalsIgnoreCase(status)){
+            task.setCompletedAt(LocalDateTime.now());
+        }else{
+            task.setCompletedAt(null);
+        }
+
         taskRepository.save(task);
+
+        TaskStatusHistory history = new TaskStatusHistory();
+
+        history.setTask(task);
+        history.setOldStatus(oldStatus);
+        history.setNewStatus(status);
+        history.setChangedAt(LocalDateTime.now());
+
+        historyRepository.save(history);
+    }
+    public List<TaskStatusHistory> getTaskHistory(Long taskId){
+
+        return historyRepository
+                .findByTask_IdOrderByChangedAtDesc(taskId);
     }
     public Task getTaskById(Long taskId) {
         return taskRepository.findById(taskId)

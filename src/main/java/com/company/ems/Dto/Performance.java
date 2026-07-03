@@ -17,4 +17,6 @@ public class Performance {
     long completionPercentage;
     long attendancePercentage;
     String status;
+    private long onTimeCompleted;
+    private long lateCompleted;
 }

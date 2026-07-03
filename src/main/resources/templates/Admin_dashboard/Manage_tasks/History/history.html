@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task History</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gradient-to-br from-slate-100 via-white to-indigo-100 font-sans">
+
+<div class="app flex flex-col md:flex-row min-h-screen">
+
+    <!-- Sidebar -->
+    <div class="sidebar w-full md:w-64 shrink-0 bg-white/80 backdrop-blur-xl border-b md:border-b-0 md:border-r border-gray-200 p-4 md:p-5 shadow-sm md:shadow-lg">
+
+        <div class="sidebar-menu mt-2 md:mt-10 flex md:flex-col gap-2 overflow-x-auto md:overflow-visible">
+
+            <a th:href="@{/admin/admin_dashboard}"
+               class="px-4 py-2 rounded-xl hover:bg-gray-100">
+                Dashboard
+            </a>
+
+            <a th:href="@{/admin/user/allUsers}"
+               class="px-4 py-2 rounded-xl hover:bg-gray-100">
+                Manage Users
+            </a>
+
+            <a th:href="@{/admin/task/allTasks}"
+               class="px-4 py-2 rounded-xl bg-indigo-100 text-indigo-700 font-medium">
+                Tasks
+            </a>
+
+            <a th:href="@{/admin/attendance/allRecords}"
+               class="px-4 py-2 rounded-xl hover:bg-gray-100">
+                Attendance Reports
+            </a>
+
+            <a th:href="@{/admin/performance/details}"
+               class="px-4 py-2 rounded-xl hover:bg-gray-100">
+                Performance Reports
+            </a>
+
+            <a th:href="@{/admin/settings/page}"
+               class="px-4 py-2 rounded-xl hover:bg-gray-100">
+                Settings
+            </a>
+
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 p-4 md:p-6">
+
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+
+            <div>
+                <div class="text-3xl font-bold text-gray-800">
+                    Task Status History
+                </div>
+
+                <div class="text-gray-500 text-sm">
+                    View all status changes for this task
+                </div>
+            </div>
+
+            <a th:href="@{/admin/task/allTasks}"
+               class="px-4 py-2 rounded-lg border bg-white hover:bg-gray-100 text-center">
+                Back
+            </a>
+
+        </div>
+
+        <!-- Task Details -->
+        <div class="bg-white rounded-2xl shadow p-6 mb-6">
+
+            <div class="font-semibold text-lg mb-4">
+                Task Information
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div>
+                    <div class="text-xs uppercase text-gray-500 font-semibold">
+                        Task Title
+                    </div>
+
+                    <div class="mt-1 text-sm text-gray-800"
+                         th:text="${task.taskTitle}">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-xs uppercase text-gray-500 font-semibold">
+                        Assigned To
+                    </div>
+
+                    <div class="mt-1 text-sm text-gray-800"
+                         th:text="${task.user != null ? task.user.fullName : 'Unassigned'}">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-xs uppercase text-gray-500 font-semibold">
+                        Current Status
+                    </div>
+
+                    <div class="mt-1 text-sm text-gray-800"
+                         th:text="${task.status}">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-xs uppercase text-gray-500 font-semibold">
+                        Deadline
+                    </div>
+
+                    <div class="mt-1 text-sm text-gray-800"
+                         th:text="${task.deadline}">
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- History Records -->
+        <div class="bg-white rounded-2xl shadow p-4 overflow-x-auto">
+
+            <div class="font-semibold text-lg mb-4">
+                Status Change Records
+            </div>
+
+            <div class="hidden md:grid grid-cols-3 text-xs text-gray-500 uppercase font-semibold border-b pb-3">
+                <div>Old Status</div>
+                <div>New Status</div>
+                <div>Changed At</div>
+            </div>
+
+            <div th:if="${history == null or #lists.isEmpty(history)}"
+                 class="py-8 text-center text-gray-500">
+
+                <div class="text-lg font-medium">
+                    No History Found
+                </div>
+
+                <div class="text-sm">
+                    No status changes have been recorded yet.
+                </div>
+
+            </div>
+
+            <div th:each="record : ${history}"
+                 class="grid md:grid-cols-3 gap-2 md:gap-0 py-4 border-b text-sm">
+
+                <div>
+                    <span class="md:hidden font-medium">Old Status:</span>
+
+                    <span th:text="${record.oldStatus != null ? record.oldStatus : '-'}">
+                    </span>
+                </div>
+
+                <div>
+                    <span class="md:hidden font-medium">New Status:</span>
+
+                    <span th:text="${record.newStatus}">
+                    </span>
+                </div>
+
+                <div>
+                    <span class="md:hidden font-medium">Changed At:</span>
+
+                    <span th:text="${#temporals.format(record.changedAt,'dd-MM-yyyy HH:mm:ss')}">
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -10,6 +10,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import com.company.ems.Entity.EmploymentHistory;
+import com.company.ems.Repository.EmploymentHistoryRepository;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -23,6 +25,7 @@ public class AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
     private final UserRepository userRepository;
+    private final EmploymentHistoryRepository employmentHistoryRepository;
 
     public Page<Attendance> getPaginatedAttendance(int page, int size, List<Attendance> attendanceList) {
 
@@ -46,6 +49,51 @@ public class AttendanceService {
         return new PageImpl<>(paginatedList, PageRequest.of(page, size), attendanceList.size());
     }
 
+//    public List<Attendance> showAttendanceRecords() {
+//
+//        List<User> employees = userRepository.findAllByRole("EMPLOYEE");
+//        List<Attendance> finalList = new ArrayList<>();
+//
+//        LocalDate today = LocalDate.now();
+//
+//        for (User user : employees) {
+//            List<Attendance> records = attendanceRepository.findAllByUser_Id(user.getId());
+//            Map<LocalDate, Attendance> attendanceMap = records.stream()
+//                    .collect(Collectors.toMap(Attendance::getDate, a -> a));
+//
+//            if (user.getJoiningDate() == null) continue;
+//
+//            LocalDate endDate = today;
+//            if (user.getLeavingDate() != null) {
+//                endDate = user.getLeavingDate().equals(today)
+//                        ? today.minusDays(1)
+//                        : user.getLeavingDate();
+//            }
+//
+//            for (LocalDate date = user.getJoiningDate();
+//                 !date.isAfter(endDate);
+//                 date = date.plusDays(1)) {
+//
+//                Attendance found = attendanceMap.get(date);
+//
+//                if (found != null) {
+//                    handleMissedCheckoutForAdmin(found);
+//                    finalList.add(found);
+//                } else {
+//                    Attendance absent = new Attendance();
+//                    absent.setUser(user);
+//                    absent.setDate(date);
+//                    absent.setStatus("Absent");
+//
+//                    finalList.add(absent);
+//                }
+//            }
+//        }
+//        finalList.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+//
+//        return finalList;
+//    }
+
     public List<Attendance> showAttendanceRecords() {
 
         List<User> employees = userRepository.findAllByRole("EMPLOYEE");
@@ -54,38 +102,93 @@ public class AttendanceService {
         LocalDate today = LocalDate.now();
 
         for (User user : employees) {
-            List<Attendance> records = attendanceRepository.findAllByUser_Id(user.getId());
+
+            List<Attendance> records =
+                    attendanceRepository.findAllByUser_Id(user.getId());
+
             Map<LocalDate, Attendance> attendanceMap = records.stream()
-                    .collect(Collectors.toMap(Attendance::getDate, a -> a));
+                    .collect(Collectors.toMap(
+                            Attendance::getDate,
+                            a -> a,
+                            (a1, a2) -> a1
+                    ));
 
-            if (user.getJoiningDate() == null) continue;
+            List<EmploymentHistory> employmentPeriods =
+                    employmentHistoryRepository.findAllByUser_Id(user.getId());
 
-            LocalDate endDate = today;
-            if (user.getLeavingDate() != null) {
-                endDate = user.getLeavingDate().equals(today)
-                        ? today.minusDays(1)
-                        : user.getLeavingDate();
-            }
+            for (EmploymentHistory period : employmentPeriods) {
 
-            for (LocalDate date = user.getJoiningDate();
-                 !date.isAfter(endDate);
-                 date = date.plusDays(1)) {
+                LocalDate startDate = period.getStartDate();
 
-                Attendance found = attendanceMap.get(date);
+                LocalDate endDate =
+                        period.getEndDate() == null
+                                ? today
+                                : period.getEndDate();
 
-                if (found != null) {
-                    handleMissedCheckoutForAdmin(found);
-                    finalList.add(found);
-                } else {
-                    Attendance absent = new Attendance();
-                    absent.setUser(user);
-                    absent.setDate(date);
-                    absent.setStatus("Absent");
+                /*
+                 * Special Case:
+                 * Activated and deactivated on same day.
+                 *
+                 * Show the day ONLY if a real attendance record exists.
+                 * Otherwise skip it completely.
+                 */
+                if (period.getEndDate() != null &&
+                        startDate.equals(period.getEndDate())) {
 
-                    finalList.add(absent);
+                    Attendance sameDayAttendance =
+                            attendanceMap.get(startDate);
+
+                    if (sameDayAttendance != null) {
+
+                        handleMissedCheckoutForAdmin(sameDayAttendance);
+
+                        if (!finalList.contains(sameDayAttendance)) {
+                            finalList.add(sameDayAttendance);
+                        }
+                    }
+
+                    continue;
+                }
+
+                for (LocalDate date = startDate;
+                     !date.isAfter(endDate);
+                     date = date.plusDays(1)) {
+
+                    Attendance found = attendanceMap.get(date);
+
+                    if (found != null) {
+
+                        handleMissedCheckoutForAdmin(found);
+
+                        if (!finalList.contains(found)) {
+                            finalList.add(found);
+                        }
+
+                    } else {
+
+                        LocalDate currentDate = date;
+
+                        boolean alreadyGenerated = finalList.stream()
+                                .anyMatch(a ->
+                                        a.getUser() != null &&
+                                                a.getUser().getId() == user.getId() &&
+                                                currentDate.equals(a.getDate()));
+
+                        if (!alreadyGenerated) {
+
+                            Attendance absent = new Attendance();
+
+                            absent.setUser(user);
+                            absent.setDate(currentDate);
+                            absent.setStatus("ABSENT");
+
+                            finalList.add(absent);
+                        }
+                    }
                 }
             }
         }
+
         finalList.sort((a, b) -> b.getDate().compareTo(a.getDate()));
 
         return finalList;
@@ -110,7 +213,7 @@ public class AttendanceService {
             long hours = duration.toHours();
             long minutes = duration.toMinutes() % 60;
 
-            attendance.setStatus("Present");
+            attendance.setStatus("PRESENT");
             attendance.setWorkingHours(hours + " hrs " + minutes + " min (Auto Closed)");
 
             attendanceRepository.save(attendance);
@@ -173,12 +276,14 @@ public class AttendanceService {
         return Math.round((present * 100.0) / total);
     }
 
-    public Page<Attendance> filterAttendanceWithPagination(String name,
-                                                           Integer month,
-                                                           Integer year,
-                                                           String status,
-                                                           int page,
-                                                           int size) {
+    public Page<Attendance> filterAttendanceWithPagination(
+            String name,
+            Integer month,
+            Integer year,
+            String status,
+            String date,
+            int page,
+            int size) {
 
         if (page < 0) page = 0;
 
@@ -186,7 +291,8 @@ public class AttendanceService {
             throw new InvalidDataException("Page size must be greater than 0");
         }
 
-        List<Attendance> attendances = filterAttendance(name, month, year, status);
+        List<Attendance> attendances =
+                filterAttendance(name, month, year, status, date);
 
         int start = page * size;
         int end = Math.min(start + size, attendances.size());
@@ -199,13 +305,19 @@ public class AttendanceService {
             paginatedList = new ArrayList<>();
         }
 
-        return new PageImpl<>(paginatedList, PageRequest.of(page, size), attendances.size());
+        return new PageImpl<>(
+                paginatedList,
+                PageRequest.of(page, size),
+                attendances.size()
+        );
     }
 
-    public List<Attendance> filterAttendance(String name,
-                                             Integer month,
-                                             Integer year,
-                                             String status) {
+    public List<Attendance> filterAttendance(
+            String name,
+            Integer month,
+            Integer year,
+            String status,
+            String date) {
 
         List<Attendance> attendance = showAttendanceRecords();
 
@@ -214,11 +326,16 @@ public class AttendanceService {
         }
 
         if (name != null && !name.isEmpty()) {
+
             String finalName = name;
+
             attendance = attendance.stream()
-                    .filter(a -> a.getUser() != null &&
-                            a.getUser().getFullName() != null &&
-                            a.getUser().getFullName().toLowerCase().contains(finalName))
+                    .filter(a ->
+                            a.getUser() != null &&
+                                    a.getUser().getFullName() != null &&
+                                    a.getUser().getFullName()
+                                            .toLowerCase()
+                                            .contains(finalName))
                     .toList();
         }
 
@@ -229,24 +346,41 @@ public class AttendanceService {
             }
 
             attendance = attendance.stream()
-                    .filter(a -> a.getDate() != null &&
-                            a.getDate().getMonthValue() == month)
+                    .filter(a ->
+                            a.getDate() != null &&
+                                    a.getDate().getMonthValue() == month)
                     .toList();
         }
 
         if (year != null) {
+
             attendance = attendance.stream()
-                    .filter(a -> a.getDate() != null &&
-                            a.getDate().getYear() == year)
+                    .filter(a ->
+                            a.getDate() != null &&
+                                    a.getDate().getYear() == year)
                     .toList();
         }
 
-        if (status != null && !status.trim().isEmpty()
-                && !status.equalsIgnoreCase("ALL")) {
+        if (status != null &&
+                !status.trim().isEmpty() &&
+                !status.equalsIgnoreCase("ALL")) {
 
             attendance = attendance.stream()
-                    .filter(a -> a.getStatus() != null &&
-                            a.getStatus().equalsIgnoreCase(status))
+                    .filter(a ->
+                            a.getStatus() != null &&
+                                    a.getStatus().equalsIgnoreCase(status))
+                    .toList();
+        }
+
+        if (date != null && !date.isBlank()) {
+
+            LocalDate selectedDate =
+                    LocalDate.parse(date);
+
+            attendance = attendance.stream()
+                    .filter(a ->
+                            a.getDate() != null &&
+                                    a.getDate().equals(selectedDate))
                     .toList();
         }
 
